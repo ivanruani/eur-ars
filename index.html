@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Conversión de divisa</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f4f1ea;
+  --card:#ffffff;
+  --primary:#1f3a3a;
+  --accent:#c9a24d;
+  --eur:#143a6e;
+  --ars:#8fd0ff;
+  --muted:#6b7280;
+  --border:#d6d3cd;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);font-family:Georgia,"Times New Roman",serif;color:var(--primary);} 
+.container{max-width:430px;margin:0 auto;padding:34px 18px 46px;} 
+.header{margin-top:56px;margin-bottom:18px;text-align:center;} 
+.title{font-size:1.9rem;font-weight:600;}
+.emoji{margin-top:6px;font-size:1.3rem;color:var(--accent);} 
+.subtitle{font-size:.85rem;color:var(--muted);margin-top:6px;} 
+.card{background:var(--card);border-radius:22px;padding:22px;border:1px solid var(--border);box-shadow:0 22px 46px rgba(0,0,0,.06);} 
+label{font-size:.85rem;color:var(--muted);display:block;margin-top:12px;margin-bottom:6px;} 
+small{color:var(--muted);font-size:.7rem;} 
+input{width:100%;padding:14px;font-size:1.05rem;border-radius:14px;border:1px solid var(--border);font-family:inherit;} 
+.box-ars{background:var(--ars);} 
+.box-eur{background:var(--eur);color:white;} 
+.explain{margin:18px 0 8px;font-size:.8rem;color:var(--muted);line-height:1.55;border-left:2px solid var(--accent);padding-left:12px;} 
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;} 
+footer{text-align:center;margin-top:26px;font-size:.7rem;color:var(--muted);} 
+a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="title">Conversión de divisa</div>
+    <div class="emoji">💶</div>
+    <div class="subtitle" id="consulta"></div>
+  </div>
+
+  <div class="card">
+    <label>Euro oficial (venta · Banco Nación)</label>
+    <small>24/04/2026 · 17:00 · <a href="https://www.bna.com.ar/" target="_blank">Banco Nación</a></small>
+    <input id="oficial" type="text" value="1.685,00">
+
+    <label>Euro informal / blue (venta)</label>
+    <small>24/04/2026 · cierre de mercado · <a href="https://www.dolarito.ar/cotizacion/euro-hoy" target="_blank">Dolarito</a></small>
+    <input id="blue" type="text" value="1.718,75">
+
+    <div class="explain" id="explain"></div>
+
+    <div class="grid">
+      <div>
+        <label>🇦🇷 Pesos argentinos</label>
+        <input id="ars" class="box-ars" type="text" value="100.000">
+      </div>
+      <div>
+        <label>🇪🇺 Euros</label>
+        <input id="eur" class="box-eur" type="text" value="">
+      </div>
+    </div>
+  </div>
+
+  <footer>App por Iván Ruani · uso privado</footer>
+</div>
+
+<script>
+function parseES(v){return parseFloat(v.replace(/\./g,'').replace(',','.'));}
+function formatES(n){return n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function nowES(){const d=new Date();return d.toLocaleDateString('es-ES')+' · '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});} 
+
+function formatInputLive(e) {
+  const input = e.target;
+  const raw = input.value.replace(/[^0-9,]/g, '');
+  const parts = raw.split(',');
+  let integer = parts[0];
+  const decimals = parts[1]?.slice(0,2) || '';
+  integer = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  input.value = decimals ? `${integer},${decimals}` : integer;
+}
+
+const oficial=document.getElementById('oficial');
+const blue=document.getElementById('blue');
+const ars=document.getElementById('ars');
+const eur=document.getElementById('eur');
+const consulta=document.getElementById('consulta');
+const explain=document.getElementById('explain');
+let lock=false;
+function tc(){return (parseES(oficial.value)+parseES(blue.value))/2;}
+function refreshExplain(){const o=parseES(oficial.value),b=parseES(blue.value);const t=(o+b)/2;
+explain.innerHTML='Tipo de cambio aplicado (promedio entre precios de venta):<br>'+
+'Euro oficial Banco Nación: $ '+formatES(o)+'<br>'+
+'Euro informal / blue (Dolarito): $ '+formatES(b)+'<br>'+
+'<strong>Tipo de cambio intermedio: $ '+formatES(t)+'</strong>';
+consulta.textContent='Fecha de consulta: '+nowES();}
+function fromARS(){if(lock)return;lock=true;const p=parseES(ars.value);if(!isNaN(p)){eur.value=formatES(p/tc());}lock=false;}
+function fromEUR(){if(lock)return;lock=true;const e=parseES(eur.value);if(!isNaN(e)){ars.value=formatES(e*tc());}lock=false;}
+
+ars.addEventListener('input',(e)=>{formatInputLive(e);fromARS();});
+eur.addEventListener('input',(e)=>{formatInputLive(e);fromEUR();});
+oficial.addEventListener('input',refreshExplain);
+blue.addEventListener('input',refreshExplain);
+
+refreshExplain();fromARS();
+</script>
+</body>
+</html>
