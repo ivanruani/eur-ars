@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Conversión de divisa</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{--bg:#f6f4ef;--card:#ffffff;--primary:#1f3a3a;--secondary:#2c4f8a;--muted:#6b7280;--border:#d4d4d8;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);font-family:Georgia,"Times New Roman",serif;color:var(--primary);} 
+.container{max-width:430px;margin:0 auto;padding:40px 20px 50px;} 
+.header{text-align:center;margin-bottom:28px;} 
+.title{font-size:1.9rem;font-weight:600;} 
+.subtitle{font-size:.85rem;color:var(--muted);margin-top:6px;} 
+.arrow{font-size:2rem;margin:14px 0;} 
+.card{background:var(--card);border-radius:20px;padding:24px;border:1px solid var(--border);box-shadow:0 18px 40px rgba(0,0,0,.06);} 
+label{font-size:.85rem;color:var(--muted);display:block;margin-bottom:6px;} 
+small{color:var(--muted);font-size:.7rem;} 
+input{width:100%;padding:14px;margin-bottom:18px;font-size:1.05rem;border-radius:12px;border:1px solid var(--border);font-family:inherit;} 
+.explain{margin-top:10px;font-size:.8rem;color:var(--muted);line-height:1.45;} 
+.result{background:#f1f3f5;border-radius:14px;padding:22px;text-align:center;margin-top:14px;} 
+.value{font-size:2rem;font-weight:600;color:var(--secondary);} 
+footer{text-align:center;margin-top:28px;font-size:.75rem;color:var(--muted);} 
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="title">Conversión de divisa</div>
+    <div class="arrow">💶 → 🇦🇷</div>
+    <div class="subtitle" id="consulta"></div>
+  </div>
+  <div class="card">
+    <label>Euro oficial (venta · Banco Nación)<br>
+      <small>Última cotización: 24/04/2026 · 17:00 · <a href="https://www.bna.com.ar/" target="_blank">Banco Nación</a></small>
+    </label>
+    <input id="oficial" type="text" value="1.685,00">
+    <label>Euro informal / blue (venta)<br>
+      <small>Última cotización: 24/04/2026 · cierre de mercado · <a href="https://www.dolarito.ar/cotizacion/euro-hoy" target="_blank">Dolarito</a></small>
+    </label>
+    <input id="blue" type="text" value="1.718,75">
+    <label>Pesos argentinos (ARS)</label>
+    <input id="ars" type="text" value="100.000">
+    <div class="explain" id="explain"></div>
+    <div class="result">
+      <div class="value" id="result">€ —</div>
+    </div>
+  </div>
+  <footer>App por Iván Ruani · uso privado</footer>
+</div>
+<script>
+function parseES(v){return parseFloat(v.replace(/\./g,'').replace(',','.'));}
+function formatES(n){return n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function nowES(){const d=new Date();return d.toLocaleDateString('es-ES')+' · '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});} 
+const oficial=document.getElementById('oficial');
+const blue=document.getElementById('blue');
+const ars=document.getElementById('ars');
+const result=document.getElementById('result');
+const consulta=document.getElementById('consulta');
+const explain=document.getElementById('explain');
+function calcular(){
+  const o=parseES(oficial.value);
+  const b=parseES(blue.value);
+  const p=parseES(ars.value);
+  if(!o||!b||!p) return;
+  const tc=(o+b)/2;
+  const eur=p/tc;
+  explain.innerHTML=
+    `Tipo de cambio aplicado (promedio entre precios de venta):<br>`+
+    `Euro oficial Banco Nación: $ ${formatES(o)}<br>`+
+    `Euro informal / blue (Dolarito): $ ${formatES(b)}<br>`+
+    `<strong>Tipo de cambio intermedio: $ ${formatES(tc)}</strong>`;
+  result.textContent='€ '+formatES(eur);
+  consulta.textContent='Fecha de consulta: '+nowES();
+}
+oficial.oninput=blue.oninput=ars.oninput=calcular;
+calcular();
+</script>
+</body>
+</html>
