@@ -1,6 +1,14 @@
 'use strict';
 const assert = require('assert');
-const { parseBna, parseDolaritoBlue, interpretarAntiguedad } = require('./parse');
+const { parseBna, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad } = require('./parse');
+
+// ---- Fixture real capturado directamente del DOM de dolarito.ar (6/9/2026):
+// el contenedor .chakra-stack propio de la tarjeta "euro blue", aislado del
+// resto de la página (ver parseDolaritoBlueBloque en parse.js). Se comprobó
+// que document.body.innerText desalinea la etiqueta de cada tarjeta con sus
+// propios valores, por eso ahora se prefiere este método estructural. ----
+const DOLARITO_BLOQUE_BLUE = '💶 euro blueHace 18 minutos$1.826,75$1.787,75$39 (2,18%)';
+const DOLARITO_BLOQUE_OFICIAL_CON_BADGE = '🏦 euro oficial-0,01%Hace 2 días$1.802,05$1.707,96$94,09 (5,51%)';
 
 // ---- Fixture real capturado hoy domingo 6/9/2026 (BNA muestra el viernes 4/9) ----
 const BNA_FIXTURE = `
@@ -286,6 +294,22 @@ assert.strictEqual(blueCi.compra, 1802.05);
 assert.strictEqual(blueCi.venta, 1707.96);
 assert.strictEqual(blueCi.antiguedadTexto, '2 días');
 console.log('OK parseDolaritoBlue (forma real de CI) ->', blueCi);
+
+const blueBloque = parseDolaritoBlueBloque(DOLARITO_BLOQUE_BLUE);
+assert.strictEqual(blueBloque.compra, 1826.75);
+assert.strictEqual(blueBloque.venta, 1787.75);
+assert.strictEqual(blueBloque.antiguedadTexto, '18 minutos');
+console.log('OK parseDolaritoBlueBloque (tarjeta aislada del DOM) ->', blueBloque);
+
+// El mismo parser aplicado por error a la tarjeta de "euro oficial" debe
+// rechazar el bloque (no contiene "euro blue").
+try {
+  parseDolaritoBlueBloque(DOLARITO_BLOQUE_OFICIAL_CON_BADGE);
+  throw new Error('debería haber lanzado');
+} catch (e) {
+  assert.ok(/no corresponde a la tarjeta/.test(e.message));
+  console.log('OK parseDolaritoBlueBloque rechaza un bloque que no es "euro blue"');
+}
 
 const antiguedad = interpretarAntiguedad(blue.antiguedadTexto);
 assert.strictEqual(antiguedad.esDeHoy, false);
