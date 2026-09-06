@@ -115,6 +115,12 @@ function parseBna(textoCrudo) {
  * "EURO TARJETA". La forma B/C usa un separador acotado (nada de comodines
  * sin límite) entre la antigüedad y "Spread:" para tolerar el "|" u otro
  * separador sin poder saltar de un bloque a otro.
+ *
+ * NOTA (6/9/2026): esta función queda como método de RESPALDO. Se descubrió
+ * que document.body.innerText desalinea, en el orden lineal del texto, la
+ * etiqueta de cada tarjeta con los valores de la tarjeta SIGUIENTE (no la
+ * propia) — ver parseDolaritoBlueBloque más abajo, que es el método
+ * preferido porque aísla cada tarjeta por su propio contenedor del DOM.
  */
 function parseDolaritoBlue(textoCrudo) {
   const texto = normalizar(textoCrudo);
@@ -157,6 +163,55 @@ function parseDolaritoBlue(textoCrudo) {
 }
 
 /**
+ * Dolarito - extracción estructural (método preferido).
+ *
+ * Se descubrió (6/9/2026) que en document.body.innerText el texto de la
+ * etiqueta de cada tarjeta ("EURO OFICIAL" / "EURO BLUE" / "EURO TARJETA")
+ * queda ubicado, en el orden lineal del texto, INMEDIATAMENTE DESPUÉS de los
+ * valores de la tarjeta SIGUIENTE en vez de los propios — un desalineamiento
+ * real entre el orden del texto plano y el orden visual con el que Dolarito
+ * arma la grilla (probablemente por cómo React/Chakra UI intercala la
+ * tarjeta promocional "Global66" y anima los cambios de valor). Esto hacía
+ * que parseDolaritoBlue (basada en texto plano + regex) devolviera el valor
+ * de OTRA tarjeta, no el de "euro blue".
+ *
+ * La forma confiable de evitar este problema es no usar innerText de toda la
+ * página, sino aislar el contenedor DOM propio de la tarjeta "euro blue"
+ * (cada tarjeta es un <div class="chakra-stack"> autocontenido con su propia
+ * etiqueta y sus propios valores) y parsear solo el texto de ESE
+ * contenedor. Esta función recibe ya ese texto aislado (ver
+ * obtenerBloqueEuroBlueDolarito en scrape.js), típicamente algo como:
+ *   "💶 euro blueHace 18 minutos$1.826,75$1.787,75$39 (2,18%)"
+ * (sin espacios entre nodos de texto pegados, de ahí el uso de \s* en vez de
+ * \s+ entre tokens).
+ */
+function parseDolaritoBlueBloque(bloqueTexto) {
+  const texto = normalizar(bloqueTexto);
+
+  if (!/euro\s+blue/i.test(texto)) {
+    throw new Error('Dolarito: el bloque recibido no corresponde a la tarjeta de "euro blue": ' + texto);
+  }
+
+  const match = texto.match(/euro\s+blue.*?Hace\s+([^$]+?)\s*\$\s*([\d.,]+)\s*\$\s*([\d.,]+)/i);
+  if (!match) {
+    throw new Error('Dolarito: no se pudo extraer compra/venta del bloque de "euro blue": ' + texto);
+  }
+
+  const antiguedadTexto = match[1].trim();
+  const compra = parseNumeroES(match[2]);
+  const venta = parseNumeroES(match[3]);
+
+  if (!enRango(compra) || !enRango(venta)) {
+    throw new Error(`Dolarito: valores fuera de rango razonable (compra=${compra}, venta=${venta})`);
+  }
+  if (compra < venta) {
+    throw new Error(`Dolarito: compra (${compra}) menor que venta (${venta}), posible error de parseo`);
+  }
+
+  return { antiguedadTexto, compra, venta };
+}
+
+/**
  * Convierte un texto de antigüedad tipo "2 días", "minutos", "3 horas",
  * "1 día", "unos segundos" en:
  *  - esDeHoy: boolean
@@ -176,4 +231,4 @@ function interpretarAntiguedad(antiguedadTexto) {
   return { esDeHoy: true, diasAtras: 0 };
 }
 
-module.exports = { parseBna, parseDolaritoBlue, interpretarAntiguedad, parseNumeroES, normalizar };
+module.exports = { parseBna, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad, parseNumeroES, normalizar };
