@@ -15,8 +15,8 @@
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-09-06T11:39:14.279Z",
-  "ultimoIntento": "2026-09-06T12:17:32.302Z",
-  "ultimoIntentoOk": false,
-  "ultimoError": "Dolarito: no se encontró el bloque de \"EURO BLUE\" con ninguno de los patrones esperados"
+  "scrapedAt": "2026-09-06T12:24:27.105Z",
+  "ultimoIntento": "2026-09-06T12:24:27.105Z",
+  "ultimoIntentoOk": true,
+  "ultimoError": null
 }
