@@ -136,6 +136,132 @@ Comprá a:
 💳 euro tarjeta
 `;
 
+// ---- Fixture real capturado desde un run de GitHub Actions (forma C: la que
+// realmente renderiza Playwright headless en el runner de CI — etiquetas en
+// MAYÚSCULAS y un "|" separando "Hace X" de "Spread:", que rompía el regex
+// de la forma B) ----
+const DOLARITO_FIXTURE_CI = `
+DOLARITO
+
+Iniciar Sesión
+
+Cotizaciones
+Indices
+Mercado
+Bandas
+Conversor
+Brecha
+Remotito
+El mundo
+Cotización histórica
+Utilidades
+Cotización del euro HOY
+Cotización del euro hoy Domingo 6 De Septiembre
+Euro Oficial, Euro Blue y Euro Tarjeta
+
+COMPARTIR:
+
+WhatsApp
+X (Twitter)
+Telegram
+LinkedIn
+Facebook
+Copiar enlace
+💵
+Dólar
+💶
+Euro
+🏦
+Bancos
+📈
+Plazos fijos
+Real
+⚡️
+Cripto
+📊
+Bandas
+Criptos
+🌍
+El mundo
+ENVÍOS INSTANTÁNEOS
+
+Hace 18 minutos
+
+|
+
+Spread: $45,93 (2,53%)
+
+VENDÉ A:
+
+$
+
+1.814,37
+
+COMPRÁ A:
+
+$
+
+1.860,30
+
+COMPRÁ YA
+
+-0,01%
+
+🏦 EURO OFICIAL
+
+Hace 2 días
+
+|
+
+Spread: $94,09 (5,51%)
+
+VENDÉ A:
+
+$
+
+1.707,96
+
+COMPRÁ A:
+
+$
+
+1.802,05
+
+💶 EURO BLUE
+
+Hace 18 minutos
+
+|
+
+Spread: $39 (2,18%)
+
+VENDÉ A:
+
+$
+
+1.787,75
+
+COMPRÁ A:
+
+$
+
+1.826,75
+
+-0,01%
+
+💳 EURO TARJETA
+
+Hace 2 días
+
+VALOR DE REFERENCIA
+
+$
+
+2.342,66
+
+Próxima actualización en 5 minutos
+`;
+
 // ---- tests ----
 const bna = parseBna(BNA_FIXTURE);
 assert.strictEqual(bna.fecha, '2026-09-04');
@@ -154,6 +280,12 @@ assert.strictEqual(blueEtiquetada.compra, 1802.05);
 assert.strictEqual(blueEtiquetada.venta, 1707.96);
 assert.strictEqual(blueEtiquetada.antiguedadTexto, '2 días');
 console.log('OK parseDolaritoBlue (forma etiquetada) ->', blueEtiquetada);
+
+const blueCi = parseDolaritoBlue(DOLARITO_FIXTURE_CI);
+assert.strictEqual(blueCi.compra, 1802.05);
+assert.strictEqual(blueCi.venta, 1707.96);
+assert.strictEqual(blueCi.antiguedadTexto, '2 días');
+console.log('OK parseDolaritoBlue (forma real de CI) ->', blueCi);
 
 const antiguedad = interpretarAntiguedad(blue.antiguedadTexto);
 assert.strictEqual(antiguedad.esDeHoy, false);
