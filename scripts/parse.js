@@ -69,7 +69,13 @@ function parseBna(textoCrudo) {
 
 /**
  * Dolarito - https://www.dolarito.ar/cotizacion/euro-hoy
- * El bloque de "euro blue" en el texto plano tiene esta forma (visible/compacta):
+ *
+ * Según el ancho de pantalla con el que Playwright renderice la página,
+ * dolarito.ar muestra el bloque de "euro blue" en el texto plano de dos
+ * formas distintas (comprobado en la práctica: una corre en el navegador de
+ * escritorio y otra en el layout angosto/mobile):
+ *
+ * Forma A (compacta, sin etiquetas):
  *   Hace 2 días
  *   $
  *   1.802,05
@@ -77,22 +83,51 @@ function parseBna(textoCrudo) {
  *   1.707,96
  *   $94,09 (5,51%)
  *   💶 EURO BLUE
- * Es decir: [antigüedad] $ [compra] $ [venta] [spread] [emoji] EURO BLUE
- * Buscamos ese patrón anclado en "EURO BLUE" (case-insensitive) para no
- * confundirlo con los bloques de "EURO OFICIAL" / "EURO TARJETA".
+ *   -> [antigüedad] $ [compra] $ [venta] [spread] [emoji] EURO BLUE
+ *
+ * Forma B (con etiquetas explícitas):
+ *   Hace 2 días
+ *   Spread: $94,09 (5,51%)
+ *   Vendé a:
+ *   1.707,96
+ *   Comprá a:
+ *   1.802,05
+ *   ...
+ *   💶 euro blue
+ *   -> [antigüedad] ... Vendé a: [venta] ... Comprá a: [compra] ... euro blue
+ *
+ * Probamos primero la forma A y, si no matchea, la forma B. Ambas se anclan
+ * en "EURO BLUE" (case-insensitive) para no confundirse con los bloques de
+ * "EURO OFICIAL" / "EURO TARJETA".
  */
 function parseDolaritoBlue(textoCrudo) {
   const texto = normalizar(textoCrudo);
 
-  const regexBloque = /Hace\s+([^$]{2,30}?)\s*\$\s*([\d.,]+)\s*\$\s*([\d.,]+)\s*\$[\d.,]+\s*\([\d.,]+%\)\s*(?:💶\s*)?EURO\s+BLUE/i;
-  const match = texto.match(regexBloque);
-  if (!match) {
-    throw new Error('Dolarito: no se encontró el bloque de "EURO BLUE" con el patrón esperado');
-  }
+  // Forma A: todo pegado, sin gaps grandes entre "Hace X" y los valores.
+  const regexCompacta = /Hace\s+([^$]{2,30}?)\s*\$\s*([\d.,]+)\s*\$\s*([\d.,]+)\s*\$[\d.,]+\s*\([\d.,]+%\)\s*(?:💶\s*)?EURO\s+BLUE/i;
+  // Forma B: secuencia exacta "Hace X Spread: $S (P%) Vendé a: V Comprá a: C"
+  // con solo un margen chico (texto tipo "Compartir cotización") antes de la
+  // etiqueta final. Todos los huecos van acotados (nada de comodines sin
+  // límite) para que no se cuele y salte de un bloque (oficial/tarjeta) al
+  // de blue.
+  const regexEtiquetada = /Hace\s+([0-9a-zA-ZáéíóúÁÉÍÓÚñÑ ]{2,20}?)\s*Spread:\s*\$[\d.,]+\s*\([\d.,]+%\)\s*Vend[eé] a:?\s*\$?\s*([\d.,]+)\s*Compr[aá] a:?\s*\$?\s*([\d.,]+)[^H]{0,40}?(?:💶\s*)?euro\s+blue/i;
 
-  const antiguedadTexto = match[1].trim();
-  const compra = parseNumeroES(match[2]);
-  const venta = parseNumeroES(match[3]);
+  let antiguedadTexto, compra, venta;
+
+  const matchCompacta = texto.match(regexCompacta);
+  if (matchCompacta) {
+    antiguedadTexto = matchCompacta[1].trim();
+    compra = parseNumeroES(matchCompacta[2]);
+    venta = parseNumeroES(matchCompacta[3]);
+  } else {
+    const matchEtiquetada = texto.match(regexEtiquetada);
+    if (!matchEtiquetada) {
+      throw new Error('Dolarito: no se encontró el bloque de "EURO BLUE" con ninguno de los patrones esperados');
+    }
+    antiguedadTexto = matchEtiquetada[1].trim();
+    venta = parseNumeroES(matchEtiquetada[2]);
+    compra = parseNumeroES(matchEtiquetada[3]);
+  }
 
   if (!enRango(compra) || !enRango(venta)) {
     throw new Error(`Dolarito: valores fuera de rango razonable (compra=${compra}, venta=${venta})`);
