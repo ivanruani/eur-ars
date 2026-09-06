@@ -7,16 +7,16 @@
     "fuenteUrl": "https://www.bna.com.ar/Cotizador/MonedasHistorico"
   },
   "blue": {
-    "compra": 1802.05,
-    "venta": 1707.96,
-    "esDeHoy": false,
-    "antiguedadTexto": "2 días",
-    "fechaAprox": "2026-09-04",
+    "compra": 1826.75,
+    "venta": 1787.75,
+    "esDeHoy": true,
+    "antiguedadTexto": "minutos",
+    "fechaAprox": "2026-09-06",
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-09-06T13:43:57.769Z",
-  "ultimoIntento": "2026-09-06T13:43:57.769Z",
+  "scrapedAt": "2026-09-06T13:49:53.381Z",
+  "ultimoIntento": "2026-09-06T13:49:53.381Z",
   "ultimoIntentoOk": true,
   "ultimoError": null
 }
