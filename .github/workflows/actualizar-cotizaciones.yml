@@ -1,0 +1,67 @@
+name: Actualizar cotizaciones EUR/ARS
+
+on:
+  schedule:
+    # Cada 30 minutos. GitHub no garantiza el minuto exacto (puede demorarse
+    # unos minutos en horarios de mucha carga), pero en la práctica corre
+    # cerca del horario pactado.
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/actualizar-cotizaciones.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar-cotizaciones
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Test de los parsers (con datos de muestra, sin red)
+        run: npm test
+
+      - name: Cachear navegadores de Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package.json') }}
+
+      - name: Instalar Chromium (Playwright)
+        run: npx playwright install --with-deps chromium
+
+      - name: Scrapear cotizaciones y generar rates.json
+        id: scrape
+        run: npm run scrape
+
+      - name: Commitear rates.json si cambió
+        # corre igual aunque el scrape haya fallado: así queda registrado el
+        # error (ultimoIntentoOk:false) sin perder el último valor bueno
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add rates.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios en rates.json"
+          else
+            git commit -m "Actualizar cotizaciones EUR/ARS [skip ci]"
+            git push
+          fi
