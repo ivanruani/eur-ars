@@ -191,7 +191,7 @@ function saveCache(data){
 
 function aplicarDatos(data){
   ultimoDatos=data;
-  oficial.value=formatES(data.oficial.venta);
+  oficial.value=formatES(data.oficial.compra);
   blue.value=formatES(data.blue.compra);
   if(data.oficial.fuenteUrl){ linkOficial.href=data.oficial.fuenteUrl; }
   if(data.blue.fuenteUrl){ linkBlue.href=data.blue.fuenteUrl; }
@@ -200,18 +200,19 @@ function aplicarDatos(data){
 
   const hoy = hoyArgentinaISO();
   if(data.oficial.fecha && data.oficial.fecha !== hoy){
-    freshOficial.textContent='⚠️ Cotización del '+ddmmES(data.oficial.fecha)+' (el banco no cotiza fines de semana/feriados)';
+    freshOficial.textContent='⚠️ Última cotización: '+ddmmES(data.oficial.fecha);
     freshOficial.classList.add('stale');
   } else {
-    freshOficial.textContent='Cotización de hoy';
+    freshOficial.textContent='Última cotización: hoy';
     freshOficial.classList.remove('stale');
   }
 
   if(data.blue.esDeHoy === false){
-    freshBlue.textContent='⚠️ Cotización de hace '+data.blue.antiguedadTexto+(data.blue.fechaAprox?' (≈ '+ddmmES(data.blue.fechaAprox)+')':'');
+    const fechaBlueLabel = data.blue.fechaAprox ? ddmmES(data.blue.fechaAprox) : data.blue.antiguedadTexto;
+    freshBlue.textContent='⚠️ Última cotización: '+fechaBlueLabel;
     freshBlue.classList.add('stale');
   } else {
-    freshBlue.textContent='Cotización de hoy';
+    freshBlue.textContent='Última cotización: hoy';
     freshBlue.classList.remove('stale');
   }
 
@@ -262,19 +263,20 @@ function textoFechaOficial(){
 }
 function textoFechaBlue(){
   if(!ultimoDatos || !ultimoDatos.blue) return '';
-  if(ultimoDatos.blue.esDeHoy) return 'cotización de hoy';
-  const aprox = ultimoDatos.blue.fechaAprox ? ' (≈ '+ddmmES(ultimoDatos.blue.fechaAprox)+')' : '';
-  return 'cotización de hace '+ultimoDatos.blue.antiguedadTexto+aprox;
+  if(ultimoDatos.blue.esDeHoy) return 'última cotización (hoy)';
+  const fecha = ultimoDatos.blue.fechaAprox ? ddmmES(ultimoDatos.blue.fechaAprox) : ultimoDatos.blue.antiguedadTexto;
+  return 'última cotización ('+fecha+')';
 }
 function buildShareText(){
   const o=parseES(oficial.value), b=parseES(blue.value), t=tc();
   const fechaOficial = textoFechaOficial();
   const fechaBlue = textoFechaBlue();
-  let texto = 'Euro oficial (Banco Nación): $ '+(isNaN(o)?'—':formatES(o))+(fechaOficial?' — '+fechaOficial:'')+'\n';
+  let texto = 'Calculado el '+nowES()+'\n';
+  texto += '------\n';
+  texto += 'Euro oficial (Banco Nación): $ '+(isNaN(o)?'—':formatES(o))+(fechaOficial?' — '+fechaOficial:'')+'\n';
   texto += 'Euro blue (Dolarito): $ '+(isNaN(b)?'—':formatES(b))+(fechaBlue?' — '+fechaBlue:'')+'\n';
   texto += 'Precio medio: $ '+(isNaN(t)?'—':formatES(t))+'\n';
   texto += '------\n';
-  texto += 'Calculado el '+nowES()+'\n';
   texto += (ars.value||'—')+' ARS = '+(eur.value||'—')+' EUR';
   return texto;
 }
