@@ -17,23 +17,35 @@
   --ars:#8fd0ff;
   --muted:#6b7280;
   --border:#d6d3cd;
+  --ok:#2f7a4d;
+  --warn:#b3541e;
 }
 *{box-sizing:border-box;}
-body{margin:0;background:var(--bg);font-family:Georgia,"Times New Roman",serif;color:var(--primary);} 
-.container{max-width:430px;margin:0 auto;padding:34px 18px 46px;} 
-.header{margin-top:56px;margin-bottom:18px;text-align:center;} 
-.title{font-size:1.9rem;font-weight:600;} 
-.emoji{margin-top:6px;font-size:1.3rem;color:var(--accent);} 
-.subtitle{font-size:.85rem;color:var(--muted);margin-top:6px;} 
-.card{background:var(--card);border-radius:22px;padding:22px;border:1px solid var(--border);box-shadow:0 22px 46px rgba(0,0,0,.06);} 
-label{font-size:.85rem;color:var(--muted);display:block;margin-top:12px;margin-bottom:6px;} 
-small{color:var(--muted);font-size:.7rem;} 
-input{width:100%;padding:14px;font-size:1.05rem;border-radius:14px;border:1px solid var(--border);font-family:inherit;} 
-.box-ars{background:var(--ars);} 
-.box-eur{background:var(--eur);color:white;} 
-.explain{margin:18px 0 8px;font-size:.8rem;color:var(--muted);line-height:1.55;border-left:2px solid var(--accent);padding-left:12px;} 
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;} 
-footer{text-align:center;margin-top:26px;font-size:.7rem;color:var(--muted);} 
+body{margin:0;background:var(--bg);font-family:Georgia,"Times New Roman",serif;color:var(--primary);}
+.container{max-width:430px;margin:0 auto;padding:34px 18px 46px;}
+.header{margin-top:40px;margin-bottom:18px;text-align:center;}
+.title{font-size:1.9rem;font-weight:600;}
+.emoji{margin-top:6px;font-size:1.3rem;color:var(--accent);}
+.subtitle{font-size:.85rem;color:var(--muted);margin-top:6px;}
+.status{font-size:.75rem;margin-top:8px;min-height:1.1em;}
+.status.ok{color:var(--ok);}
+.status.warn{color:var(--warn);}
+.status.loading{color:var(--muted);}
+.card{background:var(--card);border-radius:22px;padding:22px;border:1px solid var(--border);box-shadow:0 22px 46px rgba(0,0,0,.06);}
+.label-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;}
+label{font-size:.85rem;color:var(--muted);display:block;margin-bottom:6px;}
+small{color:var(--muted);font-size:.7rem;}
+small.freshness{display:block;margin-top:2px;}
+small.freshness.stale{color:var(--warn);}
+input{width:100%;padding:14px;font-size:1.05rem;border-radius:14px;border:1px solid var(--border);font-family:inherit;}
+.box-ars{background:var(--ars);}
+.box-eur{background:var(--eur);color:white;}
+.explain{margin:18px 0 8px;font-size:.8rem;color:var(--muted);line-height:1.55;border-left:2px solid var(--accent);padding-left:12px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
+.refresh-row{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px;}
+button.refresh{background:none;border:1px solid var(--border);border-radius:12px;padding:8px 14px;font-family:inherit;font-size:.75rem;color:var(--primary);cursor:pointer;flex-shrink:0;}
+button.refresh:active{background:var(--bg);}
+footer{text-align:center;margin-top:26px;font-size:.7rem;color:var(--muted);}
 a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
 </style>
 </head>
@@ -43,16 +55,21 @@ a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
     <div class="title">Conversión de divisa</div>
     <div class="emoji">💶</div>
     <div class="subtitle" id="consulta"></div>
+    <div class="status loading" id="status">Cargando cotizaciones…</div>
   </div>
 
   <div class="card">
-    <label>Euro oficial (venta · Banco Nación)</label>
-    <small>24/04/2026 · 17:00 · <a href="https://www.bna.com.ar/" target="_blank">Banco Nación</a></small>
-    <input id="oficial" type="text" value="1.685,00">
+    <label>Euro oficial (venta)</label>
+    <small>Fuente: <a href="https://www.bna.com.ar/Cotizador/MonedasHistorico" target="_blank" rel="noopener">Banco Nación</a></small>
+    <small class="freshness" id="fresh-oficial"></small>
+    <input id="oficial" type="text" value="">
 
-    <label>Euro informal / blue (venta)</label>
-    <small>24/04/2026 · cierre de mercado · <a href="https://www.dolarito.ar/cotizacion/euro-hoy" target="_blank">Dolarito</a></small>
-    <input id="blue" type="text" value="1.718,75">
+    <div class="label-row" style="margin-top:12px;">
+      <label style="margin:0;">Euro informal / blue (compra)</label>
+    </div>
+    <small>Fuente: <a href="https://www.dolarito.ar/cotizacion/euro-hoy" target="_blank" rel="noopener">Dolarito</a></small>
+    <small class="freshness" id="fresh-blue"></small>
+    <input id="blue" type="text" value="">
 
     <div class="explain" id="explain"></div>
 
@@ -66,49 +83,176 @@ a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
         <input id="eur" class="box-eur" type="tel" inputmode="decimal" pattern="[0-9.,]*" value="">
       </div>
     </div>
+
+    <div class="refresh-row">
+      <small id="last-update">—</small>
+      <button class="refresh" id="btn-refresh" type="button">↻ Releer datos</button>
+    </div>
   </div>
 
-  <footer>App por Iván Ruani · uso privado</footer>
+  <footer>App por Iván Ruani · uso privado · cotizaciones actualizadas cada 30 min por GitHub Actions</footer>
 </div>
 
 <script>
-function parseES(v){return parseFloat(v.replace(/\./g,'').replace(',','.'));}
+// ---------- utilidades numéricas / fecha ----------
+function parseES(v){return parseFloat(String(v).replace(/\./g,'').replace(',','.'));}
 function formatES(n){return n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function nowES(){const d=new Date();return d.toLocaleDateString('es-ES')+' · '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});} 
+function nowES(){const d=new Date();return d.toLocaleDateString('es-ES')+' · '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
+function hhmmES(d){return d.toLocaleDateString('es-ES')+' · '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
+function ddmmES(isoDate){ // "2026-09-04" -> "4/9/2026"
+  const [y,m,d] = isoDate.split('-');
+  return `${parseInt(d,10)}/${parseInt(m,10)}/${y}`;
+}
+function hoyArgentinaISO(){
+  // Argentina es UTC-3 todo el año (sin horario de verano)
+  const arg = new Date(Date.now() - 3*60*60*1000);
+  return arg.toISOString().slice(0,10);
+}
 
 function formatInputLive(e) {
   const input = e.target;
   const raw = input.value.replace(/[^0-9,]/g, '');
-  const parts = raw.split(',');
-  let integer = parts[0];
-  const decimals = parts[1]?.slice(0,2) || '';
+  const firstComma = raw.indexOf(',');
+  let integer = firstComma === -1 ? raw : raw.slice(0, firstComma);
+  const decimals = firstComma === -1 ? '' : raw.slice(firstComma + 1).replace(/,/g, '').slice(0, 2);
   integer = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  input.value = decimals ? `${integer},${decimals}` : integer;
+  input.value = firstComma === -1 ? integer : `${integer},${decimals}`;
 }
 
+// ---------- elementos ----------
 const oficial=document.getElementById('oficial');
 const blue=document.getElementById('blue');
 const ars=document.getElementById('ars');
 const eur=document.getElementById('eur');
 const consulta=document.getElementById('consulta');
 const explain=document.getElementById('explain');
+const statusEl=document.getElementById('status');
+const lastUpdateEl=document.getElementById('last-update');
+const btnRefresh=document.getElementById('btn-refresh');
+const freshOficial=document.getElementById('fresh-oficial');
+const freshBlue=document.getElementById('fresh-blue');
 let lock=false;
+
+// ---------- conversor ----------
+// Oficial = venta del Banco Nación. Blue = compra de Dolarito (el valor que
+// Iván usa de referencia para cambiar euros con la familia).
 function tc(){return (parseES(oficial.value)+parseES(blue.value))/2;}
-function refreshExplain(){const o=parseES(oficial.value),b=parseES(blue.value);const t=(o+b)/2;
-explain.innerHTML='Tipo de cambio aplicado (promedio entre precios de venta):<br>'+
-'Euro oficial Banco Nación: $ '+formatES(o)+'<br>'+
-'Euro informal / blue (Dolarito): $ '+formatES(b)+'<br>'+
-'<strong>Tipo de cambio intermedio: $ '+formatES(t)+'</strong>';
-consulta.textContent='Fecha de consulta: '+nowES();}
+function refreshExplain(){
+  const o=parseES(oficial.value), b=parseES(blue.value);
+  const t=(o+b)/2;
+  explain.innerHTML='Tipo de cambio aplicado (promedio):<br>'+
+  'Euro oficial (venta BNA): $ '+ (isNaN(o)?'—':formatES(o)) +'<br>'+
+  'Euro informal / blue (compra Dolarito): $ '+ (isNaN(b)?'—':formatES(b)) +'<br>'+
+  '<strong>Tipo de cambio intermedio: $ '+ (isNaN(t)?'—':formatES(t)) +'</strong>';
+  consulta.textContent='Fecha de consulta: '+nowES();
+}
 function fromARS(){if(lock)return;lock=true;const p=parseES(ars.value);if(!isNaN(p)){eur.value=formatES(p/tc());}lock=false;}
 function fromEUR(){if(lock)return;lock=true;const e=parseES(eur.value);if(!isNaN(e)){ars.value=formatES(e*tc());}lock=false;}
 
 ars.addEventListener('input',(e)=>{formatInputLive(e);fromARS();});
 eur.addEventListener('input',(e)=>{formatInputLive(e);fromEUR();});
-oficial.addEventListener('input',refreshExplain);
-blue.addEventListener('input',refreshExplain);
+oficial.addEventListener('input',()=>{refreshExplain();fromARS();});
+blue.addEventListener('input',()=>{refreshExplain();fromARS();});
 
-refreshExplain();fromARS();
+// ---------- lectura de rates.json (generado por GitHub Actions) ----------
+// Nota: dolarito.ar y bna.com.ar no son APIs y no habilitan CORS, así que no
+// se pueden leer directo desde el navegador. Un workflow de GitHub Actions
+// las scrapea cada 30 min y commitea rates.json en este mismo repo; la
+// página solo lee ese archivo, que al ser del mismo origen no tiene problema
+// de CORS.
+const RATES_URL='./rates.json';
+const REFRESH_MS=30*60*1000; // 30 minutos
+const STORAGE_KEY='eurars_rates_v2';
+let lastFetchTs=0;
+
+function setStatus(text,kind){
+  statusEl.textContent=text;
+  statusEl.className='status '+(kind||'');
+}
+
+function loadCache(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(err){ return null; }
+}
+function saveCache(data){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(err){ /* ignorar */ }
+}
+
+function aplicarDatos(data){
+  oficial.value=formatES(data.oficial.venta);
+  blue.value=formatES(data.blue.compra);
+  refreshExplain();
+  fromARS();
+
+  const hoy = hoyArgentinaISO();
+  if(data.oficial.fecha && data.oficial.fecha !== hoy){
+    freshOficial.textContent='⚠️ Cotización del '+ddmmES(data.oficial.fecha)+' (el banco no cotiza fines de semana/feriados)';
+    freshOficial.classList.add('stale');
+  } else {
+    freshOficial.textContent='Cotización de hoy';
+    freshOficial.classList.remove('stale');
+  }
+
+  if(data.blue.esDeHoy === false){
+    freshBlue.textContent='⚠️ Cotización de hace '+data.blue.antiguedadTexto+(data.blue.fechaAprox?' (≈ '+ddmmES(data.blue.fechaAprox)+')':'');
+    freshBlue.classList.add('stale');
+  } else {
+    freshBlue.textContent='Cotización de hoy';
+    freshBlue.classList.remove('stale');
+  }
+
+  const when = data.scrapedAt ? new Date(data.scrapedAt) : new Date();
+  lastUpdateEl.textContent = 'Datos del scraper: '+hhmmES(when);
+}
+
+async function fetchRates(manual){
+  setStatus(manual?'Releyendo…':'Comprobando cotizaciones…','loading');
+  try{
+    const res = await fetch(RATES_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    if(!data || !data.oficial || !data.blue){
+      throw new Error('rates.json sin los campos esperados');
+    }
+    aplicarDatos(data);
+    saveCache(data);
+    lastFetchTs = Date.now();
+    if(data.ultimoIntentoOk === false){
+      setStatus('⚠️ El último intento de actualización automática falló ('+(data.ultimoError||'error desconocido')+'). Mostrando el último valor bueno.','warn');
+    } else {
+      setStatus('✅ Cotizaciones al día','ok');
+    }
+  }catch(err){
+    const cached = loadCache();
+    if(cached){
+      aplicarDatos(cached);
+      setStatus('⚠️ No se pudo leer rates.json ahora. Mostrando el último valor guardado en este dispositivo (podés editarlo a mano).','warn');
+    } else {
+      refreshExplain();
+      setStatus('⚠️ No se pudo obtener la cotización. Ingresá los valores manualmente.','warn');
+    }
+  }
+}
+
+btnRefresh.addEventListener('click', ()=>fetchRates(true));
+
+// primero mostramos lo que haya en caché local para que no quede en blanco
+const cachedOnLoad = loadCache();
+if(cachedOnLoad){ aplicarDatos(cachedOnLoad); }
+refreshExplain();
+fetchRates(false);
+
+// releemos rates.json cada 30 minutos mientras la página esté abierta, por si
+// se subió una actualización nueva mientras la teníamos abierta
+setInterval(()=>fetchRates(false), REFRESH_MS);
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && Date.now() - lastFetchTs > REFRESH_MS){
+    fetchRates(false);
+  }
+});
 </script>
 </body>
 </html>
