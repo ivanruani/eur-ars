@@ -63,16 +63,28 @@ async function main() {
 
   try {
     const textoBna = await obtenerTextoVisible(browser, BNA_URL);
-    oficial = parseBna(textoBna);
+    try {
+      oficial = parseBna(textoBna);
+    } catch (parseErr) {
+      console.error('--- BNA: texto crudo (diagnóstico, primeros 3000 caracteres) ---');
+      console.error(textoBna.slice(0, 3000));
+      throw parseErr;
+    }
   } catch (err) {
     errores.push(err.message);
   }
 
   try {
     const textoDolarito = await obtenerTextoVisible(browser, DOLARITO_URL);
-    const blueParsed = parseDolaritoBlue(textoDolarito);
-    const antiguedad = interpretarAntiguedad(blueParsed.antiguedadTexto);
-    blue = { ...blueParsed, ...antiguedad };
+    try {
+      const blueParsed = parseDolaritoBlue(textoDolarito);
+      const antiguedad = interpretarAntiguedad(blueParsed.antiguedadTexto);
+      blue = { ...blueParsed, ...antiguedad };
+    } catch (parseErr) {
+      console.error('--- Dolarito: texto crudo (diagnóstico, primeros 3000 caracteres) ---');
+      console.error(textoDolarito.slice(0, 3000));
+      throw parseErr;
+    }
   } catch (err) {
     errores.push(err.message);
   }
