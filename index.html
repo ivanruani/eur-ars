@@ -42,9 +42,11 @@ input{width:100%;padding:14px;font-size:1.05rem;border-radius:14px;border:1px so
 .box-eur{background:var(--eur);color:white;}
 .explain{margin:18px 0 8px;font-size:.8rem;color:var(--muted);line-height:1.55;border-left:2px solid var(--accent);padding-left:12px;}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
-.refresh-row{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px;}
-button.refresh{background:none;border:1px solid var(--border);border-radius:12px;padding:8px 14px;font-family:inherit;font-size:.75rem;color:var(--primary);cursor:pointer;flex-shrink:0;}
+.last-update-row{text-align:center;margin-top:16px;}
+.actions-row{display:flex;gap:10px;margin-top:8px;}
+button.refresh{flex:1;background:none;border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-family:inherit;font-size:.75rem;color:var(--primary);cursor:pointer;}
 button.refresh:active{background:var(--bg);}
+.nota{margin-top:10px;font-size:.72rem;color:var(--muted);line-height:1.5;}
 footer{text-align:center;margin-top:26px;font-size:.7rem;color:var(--muted);}
 a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
 </style>
@@ -59,17 +61,19 @@ a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
   </div>
 
   <div class="card">
-    <label>Euro oficial (venta)</label>
-    <small>Fuente: <a href="https://www.bna.com.ar/Cotizador/MonedasHistorico" target="_blank" rel="noopener">Banco Nación</a></small>
+    <label>Euro oficial — lo que cuesta comprarlo en el banco</label>
+    <small>Fuente: <a id="link-oficial" href="https://www.bna.com.ar/Cotizador/MonedasHistorico" target="_blank" rel="noopener">Banco Nación</a> (columna "venta")</small>
     <small class="freshness" id="fresh-oficial"></small>
     <input id="oficial" type="text" value="">
 
     <div class="label-row" style="margin-top:12px;">
-      <label style="margin:0;">Euro informal / blue (compra)</label>
+      <label style="margin:0;">Euro blue — lo que cuesta comprarlo en el mercado informal</label>
     </div>
-    <small>Fuente: <a href="https://www.dolarito.ar/cotizacion/euro-hoy" target="_blank" rel="noopener">Dolarito</a></small>
+    <small>Fuente: <a id="link-blue" href="https://www.dolarito.ar/cotizacion/euro-hoy" target="_blank" rel="noopener">Dolarito</a> (columna "comprá a")</small>
     <small class="freshness" id="fresh-blue"></small>
     <input id="blue" type="text" value="">
+
+    <div class="nota">Ojo: el banco lo llama "venta" (porque es él quien te lo vende) y Dolarito lo llama "comprá a" (porque sos vos quien compra). Son términos distintos pero representan lo mismo: cuánto pagás para conseguir 1 euro en cada mercado.</div>
 
     <div class="explain" id="explain"></div>
 
@@ -84,9 +88,12 @@ a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
       </div>
     </div>
 
-    <div class="refresh-row">
+    <div class="last-update-row">
       <small id="last-update">—</small>
-      <button class="refresh" id="btn-refresh" type="button">↻ Releer datos</button>
+    </div>
+    <div class="actions-row">
+      <button class="refresh" id="btn-refresh" type="button">↻ Actualizar ahora</button>
+      <button class="refresh" id="btn-share" type="button">🔗 Compartir</button>
     </div>
   </div>
 
@@ -129,8 +136,11 @@ const explain=document.getElementById('explain');
 const statusEl=document.getElementById('status');
 const lastUpdateEl=document.getElementById('last-update');
 const btnRefresh=document.getElementById('btn-refresh');
+const btnShare=document.getElementById('btn-share');
 const freshOficial=document.getElementById('fresh-oficial');
 const freshBlue=document.getElementById('fresh-blue');
+const linkOficial=document.getElementById('link-oficial');
+const linkBlue=document.getElementById('link-blue');
 let lock=false;
 
 // ---------- conversor ----------
@@ -183,6 +193,8 @@ function saveCache(data){
 function aplicarDatos(data){
   oficial.value=formatES(data.oficial.venta);
   blue.value=formatES(data.blue.compra);
+  if(data.oficial.fuenteUrl){ linkOficial.href=data.oficial.fuenteUrl; }
+  if(data.blue.fuenteUrl){ linkBlue.href=data.blue.fuenteUrl; }
   refreshExplain();
   fromARS();
 
@@ -237,6 +249,37 @@ async function fetchRates(manual){
 }
 
 btnRefresh.addEventListener('click', ()=>fetchRates(true));
+
+// ---------- compartir ----------
+function buildShareText(){
+  const o=parseES(oficial.value), b=parseES(blue.value), t=tc();
+  let texto = 'Cotización EUR/ARS – '+nowES()+'\n';
+  texto += 'Euro oficial (Banco Nación): $ '+(isNaN(o)?'—':formatES(o))+'\n';
+  texto += 'Euro blue (Dolarito): $ '+(isNaN(b)?'—':formatES(b))+'\n';
+  texto += 'Precio medio: $ '+(isNaN(t)?'—':formatES(t))+'\n';
+  texto += '-----\n';
+  texto += (ars.value||'—')+' ARS = '+(eur.value||'—')+' EUR';
+  return texto;
+}
+
+async function compartir(){
+  const texto = buildShareText();
+  const textoAnterior = statusEl.textContent;
+  const claseAnterior = statusEl.className;
+  if(navigator.share){
+    try{ await navigator.share({text:texto}); }
+    catch(err){ /* el usuario canceló el share: no hacemos nada */ }
+    return;
+  }
+  try{
+    await navigator.clipboard.writeText(texto);
+    setStatus('📋 Copiado al portapapeles','ok');
+  }catch(err){
+    window.prompt('Copiá el texto para compartir:', texto);
+  }
+  setTimeout(()=>{ statusEl.textContent=textoAnterior; statusEl.className=claseAnterior; }, 2500);
+}
+btnShare.addEventListener('click', compartir);
 
 // primero mostramos lo que haya en caché local para que no quede en blanco
 const cachedOnLoad = loadCache();
