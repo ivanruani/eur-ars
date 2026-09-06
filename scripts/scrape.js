@@ -54,11 +54,22 @@ async function obtenerTextoVisible(browser, url) {
  * un <div class="chakra-stack"> autocontenido, así que aislamos y devolvemos
  * SOLO el texto de esa tarjeta puntual (no toda la página), evitando por
  * completo el problema de orden.
+ *
+ * IMPORTANTE: se comprobó también (6/9/2026) que este contenedor combinado
+ * (etiqueta + valores en el mismo <div class="chakra-stack">) SOLO existe en
+ * el layout angosto/mobile de Dolarito. Con el viewport por defecto de
+ * Playwright (1280x720, layout de escritorio) la etiqueta se renderiza en un
+ * elemento separado de los valores, así que esta búsqueda no encuentra nada
+ * y el scraper caía al método de respaldo (parseDolaritoBlue, basado en
+ * texto plano), que sí "encuentra" un bloque pero con los valores de OTRA
+ * tarjeta (ver la nota grande en parseDolaritoBlue). Por eso forzamos acá un
+ * viewport angosto (mobile) para esta página en particular.
  */
 async function obtenerBloqueEuroBlueDolarito(browser, url) {
   const page = await browser.newPage({
     userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    viewport: { width: 390, height: 844 },
   });
   try {
     await page.goto(url, { timeout: NAV_TIMEOUT_MS, waitUntil: 'networkidle' });
@@ -126,7 +137,11 @@ async function main() {
     } else {
       // Respaldo: si el sitio cambió de estructura y ya no hay un
       // contenedor .chakra-stock reconocible, volvemos al método anterior
-      // basado en texto plano + regex (menos confiable, pero mejor que nada).
+      // basado en texto plano + regex (MENOS CONFIABLE: se comprobó que
+      // puede devolver silenciosamente el valor de otra tarjeta sin lanzar
+      // ningún error, así que dejamos bien visible en el log que se está
+      // usando este camino, para poder detectarlo a tiempo).
+      console.warn('AVISO: no se encontró el bloque estructural de "euro blue" (¿cambió el layout de Dolarito?); usando el método de respaldo, menos confiable.');
       const textoDolarito = await obtenerTextoVisible(browser, DOLARITO_URL);
       try {
         blueParsed = parseDolaritoBlue(textoDolarito);
