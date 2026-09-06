@@ -84,6 +84,58 @@ $
 Próxima actualización en 5 minutos
 `;
 
+// ---- Fixture real capturado hoy (bloque "etiquetado", forma B, con
+// "Vendé a:" / "Comprá a:" explícitos — aparece con otros anchos de pantalla) ----
+const DOLARITO_FIXTURE_ETIQUETADA = `
+Hace minutos
+
+Spread: $45,93 (2,53%)
+
+Vendé a:
+
+1.814,37
+
+Comprá a:
+
+1.860,30
+
+COMPRÁ YA
+
+-0,01%
+
+🏦 euro oficial
+
+Hace 2 días
+
+Spread: $94,09 (5,51%)
+
+Vendé a:
+
+1.707,96
+
+Comprá a:
+
+1.802,05
+
+Compartir cotización
+
+💶 euro blue
+
+Hace minutos
+
+Spread: $39 (2,18%)
+
+Vendé a:
+
+1.787,75
+
+Comprá a:
+
+1.826,75
+
+💳 euro tarjeta
+`;
+
 // ---- tests ----
 const bna = parseBna(BNA_FIXTURE);
 assert.strictEqual(bna.fecha, '2026-09-04');
@@ -96,6 +148,12 @@ assert.strictEqual(blue.compra, 1802.05);
 assert.strictEqual(blue.venta, 1707.96);
 assert.strictEqual(blue.antiguedadTexto, '2 días');
 console.log('OK parseDolaritoBlue ->', blue);
+
+const blueEtiquetada = parseDolaritoBlue(DOLARITO_FIXTURE_ETIQUETADA);
+assert.strictEqual(blueEtiquetada.compra, 1802.05);
+assert.strictEqual(blueEtiquetada.venta, 1707.96);
+assert.strictEqual(blueEtiquetada.antiguedadTexto, '2 días');
+console.log('OK parseDolaritoBlue (forma etiquetada) ->', blueEtiquetada);
 
 const antiguedad = interpretarAntiguedad(blue.antiguedadTexto);
 assert.strictEqual(antiguedad.esDeHoy, false);
