@@ -18,7 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
-const { parseBna, parseDolaritoBlue, interpretarAntiguedad } = require('./parse');
+const { parseBna, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad } = require('./parse');
 
 const BNA_URL = 'https://www.bna.com.ar/Cotizador/MonedasHistorico';
 const DOLARITO_URL = 'https://www.dolarito.ar/cotizacion/euro-hoy';
@@ -41,6 +41,41 @@ async function obtenerTextoVisible(browser, url) {
     // pequeño margen extra por si algún valor se hidrata unos ms después del networkidle
     await page.waitForTimeout(1500);
     return await page.evaluate(() => document.body.innerText);
+  } finally {
+    await page.close();
+  }
+}
+
+/**
+ * Dolarito - extracción estructural de la tarjeta "euro blue" (ver comentario
+ * largo en parse.js/parseDolaritoBlueBloque para el porqué). Se comprobó
+ * (6/9/2026) que document.body.innerText desalinea la etiqueta de cada
+ * tarjeta con sus propios valores; en cambio, cada tarjeta de cotización es
+ * un <div class="chakra-stack"> autocontenido, así que aislamos y devolvemos
+ * SOLO el texto de esa tarjeta puntual (no toda la página), evitando por
+ * completo el problema de orden.
+ */
+async function obtenerBloqueEuroBlueDolarito(browser, url) {
+  const page = await browser.newPage({
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  });
+  try {
+    await page.goto(url, { timeout: NAV_TIMEOUT_MS, waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    return await page.evaluate(() => {
+      function esVisible(el) {
+        const r = el.getBoundingClientRect();
+        const s = getComputedStyle(el);
+        return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+      }
+      const bloques = [...document.querySelectorAll('.chakra-stack')]
+        .filter((el) => /\$[\d.,]+/.test(el.textContent) && el.textContent.length < 200 && esVisible(el))
+        .map((el) => el.textContent.replace(/\s+/g, ' ').trim());
+      // La tarjeta de "euro blue" es la única que menciona "blue" y no
+      // "tarjeta" (para no confundirla si alguna vez comparten palabras).
+      return bloques.find((t) => /blue/i.test(t) && !/tarjeta/i.test(t)) || null;
+    });
   } finally {
     await page.close();
   }
@@ -75,16 +110,34 @@ async function main() {
   }
 
   try {
-    const textoDolarito = await obtenerTextoVisible(browser, DOLARITO_URL);
-    try {
-      const blueParsed = parseDolaritoBlue(textoDolarito);
-      const antiguedad = interpretarAntiguedad(blueParsed.antiguedadTexto);
-      blue = { ...blueParsed, ...antiguedad };
-    } catch (parseErr) {
-      console.error('--- Dolarito: texto crudo (diagnóstico, primeros 3000 caracteres) ---');
-      console.error(textoDolarito.slice(0, 3000));
-      throw parseErr;
+    // Método preferido: aislar el contenedor DOM propio de la tarjeta "euro
+    // blue" (evita el desalineamiento entre el orden del texto plano de la
+    // página y el orden visual de las tarjetas, ver parse.js).
+    let blueParsed;
+    const bloqueBlue = await obtenerBloqueEuroBlueDolarito(browser, DOLARITO_URL);
+    if (bloqueBlue) {
+      try {
+        blueParsed = parseDolaritoBlueBloque(bloqueBlue);
+      } catch (parseErr) {
+        console.error('--- Dolarito: bloque de "euro blue" (diagnóstico) ---');
+        console.error(bloqueBlue);
+        throw parseErr;
+      }
+    } else {
+      // Respaldo: si el sitio cambió de estructura y ya no hay un
+      // contenedor .chakra-stock reconocible, volvemos al método anterior
+      // basado en texto plano + regex (menos confiable, pero mejor que nada).
+      const textoDolarito = await obtenerTextoVisible(browser, DOLARITO_URL);
+      try {
+        blueParsed = parseDolaritoBlue(textoDolarito);
+      } catch (parseErr) {
+        console.error('--- Dolarito: no se encontró bloque estructural; texto crudo (diagnóstico, primeros 3000 caracteres) ---');
+        console.error(textoDolarito.slice(0, 3000));
+        throw parseErr;
+      }
     }
+    const antiguedad = interpretarAntiguedad(blueParsed.antiguedadTexto);
+    blue = { ...blueParsed, ...antiguedad };
   } catch (err) {
     errores.push(err.message);
   }
