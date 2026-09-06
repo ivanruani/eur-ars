@@ -85,7 +85,7 @@ function parseBna(textoCrudo) {
  *   💶 EURO BLUE
  *   -> [antigüedad] $ [compra] $ [venta] [spread] [emoji] EURO BLUE
  *
- * Forma B (con etiquetas explícitas):
+ * Forma B (con etiquetas explícitas, "Vendé a:" / "Comprá a:"):
  *   Hace 2 días
  *   Spread: $94,09 (5,51%)
  *   Vendé a:
@@ -96,21 +96,37 @@ function parseBna(textoCrudo) {
  *   💶 euro blue
  *   -> [antigüedad] ... Vendé a: [venta] ... Comprá a: [compra] ... euro blue
  *
- * Probamos primero la forma A y, si no matchea, la forma B. Ambas se anclan
- * en "EURO BLUE" (case-insensitive) para no confundirse con los bloques de
- * "EURO OFICIAL" / "EURO TARJETA".
+ * Forma C (variante real observada en el runner de GitHub Actions: mismas
+ * etiquetas que la forma B, pero en mayúsculas, con un "|" separando la
+ * antigüedad del "Spread:", y el "$" en su propia línea):
+ *   Hace 18 minutos
+ *   |
+ *   Spread: $94,09 (5,51%)
+ *   VENDÉ A:
+ *   $
+ *   1.707,96
+ *   COMPRÁ A:
+ *   $
+ *   1.802,05
+ *   💶 EURO BLUE
+ *
+ * Probamos las tres formas en orden. Todas se anclan en "EURO BLUE"
+ * (case-insensitive) para no confundirse con los bloques de "EURO OFICIAL" /
+ * "EURO TARJETA". La forma B/C usa un separador acotado (nada de comodines
+ * sin límite) entre la antigüedad y "Spread:" para tolerar el "|" u otro
+ * separador sin poder saltar de un bloque a otro.
  */
 function parseDolaritoBlue(textoCrudo) {
   const texto = normalizar(textoCrudo);
 
   // Forma A: todo pegado, sin gaps grandes entre "Hace X" y los valores.
   const regexCompacta = /Hace\s+([^$]{2,30}?)\s*\$\s*([\d.,]+)\s*\$\s*([\d.,]+)\s*\$[\d.,]+\s*\([\d.,]+%\)\s*(?:💶\s*)?EURO\s+BLUE/i;
-  // Forma B: secuencia exacta "Hace X Spread: $S (P%) Vendé a: V Comprá a: C"
-  // con solo un margen chico (texto tipo "Compartir cotización") antes de la
-  // etiqueta final. Todos los huecos van acotados (nada de comodines sin
-  // límite) para que no se cuele y salte de un bloque (oficial/tarjeta) al
-  // de blue.
-  const regexEtiquetada = /Hace\s+([0-9a-zA-ZáéíóúÁÉÍÓÚñÑ ]{2,20}?)\s*Spread:\s*\$[\d.,]+\s*\([\d.,]+%\)\s*Vend[eé] a:?\s*\$?\s*([\d.,]+)\s*Compr[aá] a:?\s*\$?\s*([\d.,]+)[^H]{0,40}?(?:💶\s*)?euro\s+blue/i;
+  // Forma B/C: secuencia "Hace X [separador] Spread: $S (P%) Vendé/VENDÉ a:
+  // V Comprá/COMPRÁ a: C". El separador entre la antigüedad y "Spread:" es
+  // una clase acotada de caracteres que no son letra/dígito (space, "|",
+  // etc.) para tolerar variantes de maquetado sin abrir la puerta a que el
+  // regex se cuele de un bloque a otro.
+  const regexEtiquetada = /Hace\s+([0-9a-zA-ZáéíóúÁÉÍÓÚñÑ ]{2,20}?)[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9]{0,6}Spread:\s*\$[\d.,]+\s*\([\d.,]+%\)\s*Vend[eéÉ] a:?\s*\$?\s*([\d.,]+)\s*Compr[aáÁ] a:?\s*\$?\s*([\d.,]+)[^H]{0,40}?(?:💶\s*)?euro\s+blue/i;
 
   let antiguedadTexto, compra, venta;
 
