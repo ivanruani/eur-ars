@@ -46,7 +46,6 @@ input{width:100%;padding:14px;font-size:1.05rem;border-radius:14px;border:1px so
 .actions-row{display:flex;gap:10px;margin-top:8px;}
 button.refresh{flex:1;background:none;border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-family:inherit;font-size:.75rem;color:var(--primary);cursor:pointer;}
 button.refresh:active{background:var(--bg);}
-.nota{margin-top:10px;font-size:.72rem;color:var(--muted);line-height:1.5;}
 footer{text-align:center;margin-top:26px;font-size:.7rem;color:var(--muted);}
 a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
 </style>
@@ -62,18 +61,16 @@ a{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;}
 
   <div class="card">
     <label>Euro oficial — lo que cuesta comprarlo en el banco</label>
-    <small>Fuente: <a id="link-oficial" href="https://www.bna.com.ar/Cotizador/MonedasHistorico" target="_blank" rel="noopener">Banco Nación</a> (columna "venta")</small>
+    <small>Fuente: <a id="link-oficial" href="https://www.bna.com.ar/Cotizador/MonedasHistorico" target="_blank" rel="noopener">Banco Nación</a></small>
     <small class="freshness" id="fresh-oficial"></small>
     <input id="oficial" type="text" value="">
 
     <div class="label-row" style="margin-top:12px;">
       <label style="margin:0;">Euro blue — lo que cuesta comprarlo en el mercado informal</label>
     </div>
-    <small>Fuente: <a id="link-blue" href="https://www.dolarito.ar/cotizacion/euro-hoy" target="_blank" rel="noopener">Dolarito</a> (columna "comprá a")</small>
+    <small>Fuente: <a id="link-blue" href="https://www.dolarito.ar/cotizacion/euro-hoy" target="_blank" rel="noopener">Dolarito</a></small>
     <small class="freshness" id="fresh-blue"></small>
     <input id="blue" type="text" value="">
-
-    <div class="nota">Ojo: el banco lo llama "venta" (porque es él quien te lo vende) y Dolarito lo llama "comprá a" (porque sos vos quien compra). Son términos distintos pero representan lo mismo: cuánto pagás para conseguir 1 euro en cada mercado.</div>
 
     <div class="explain" id="explain"></div>
 
@@ -144,15 +141,16 @@ const linkBlue=document.getElementById('link-blue');
 let lock=false;
 
 // ---------- conversor ----------
-// Oficial = venta del Banco Nación. Blue = compra de Dolarito (el valor que
-// Iván usa de referencia para cambiar euros con la familia).
+// Ambos valores representan lo mismo: cuánto cuesta comprar 1 euro en cada
+// mercado (oficial = Banco Nación, blue = Dolarito). El tipo de cambio que
+// usa Iván de referencia para cambiar euros con la familia es el promedio.
 function tc(){return (parseES(oficial.value)+parseES(blue.value))/2;}
 function refreshExplain(){
   const o=parseES(oficial.value), b=parseES(blue.value);
   const t=(o+b)/2;
   explain.innerHTML='Tipo de cambio aplicado (promedio):<br>'+
-  'Euro oficial (venta BNA): $ '+ (isNaN(o)?'—':formatES(o)) +'<br>'+
-  'Euro informal / blue (compra Dolarito): $ '+ (isNaN(b)?'—':formatES(b)) +'<br>'+
+  'Euro oficial (Banco Nación): $ '+ (isNaN(o)?'—':formatES(o)) +'<br>'+
+  'Euro blue (Dolarito): $ '+ (isNaN(b)?'—':formatES(b)) +'<br>'+
   '<strong>Tipo de cambio intermedio: $ '+ (isNaN(t)?'—':formatES(t)) +'</strong>';
   consulta.textContent='Fecha de consulta: '+nowES();
 }
@@ -174,6 +172,7 @@ const RATES_URL='./rates.json';
 const REFRESH_MS=30*60*1000; // 30 minutos
 const STORAGE_KEY='eurars_rates_v2';
 let lastFetchTs=0;
+let ultimoDatos=null; // último rates.json aplicado, para poder citar fecha/hora de cada cotización al compartir
 
 function setStatus(text,kind){
   statusEl.textContent=text;
@@ -191,6 +190,7 @@ function saveCache(data){
 }
 
 function aplicarDatos(data){
+  ultimoDatos=data;
   oficial.value=formatES(data.oficial.venta);
   blue.value=formatES(data.blue.compra);
   if(data.oficial.fuenteUrl){ linkOficial.href=data.oficial.fuenteUrl; }
@@ -251,13 +251,30 @@ async function fetchRates(manual){
 btnRefresh.addEventListener('click', ()=>fetchRates(true));
 
 // ---------- compartir ----------
+// Texto de fecha/hora de cada cotización, tal como la muestra la app (misma
+// lógica que aplicarDatos usa para las etiquetas "Cotización de hoy" / "⚠️ ...").
+function textoFechaOficial(){
+  if(!ultimoDatos || !ultimoDatos.oficial || !ultimoDatos.oficial.fecha) return '';
+  const hoy = hoyArgentinaISO();
+  return ultimoDatos.oficial.fecha === hoy
+    ? 'cotización de hoy'
+    : 'cotización del '+ddmmES(ultimoDatos.oficial.fecha);
+}
+function textoFechaBlue(){
+  if(!ultimoDatos || !ultimoDatos.blue) return '';
+  if(ultimoDatos.blue.esDeHoy) return 'cotización de hoy';
+  const aprox = ultimoDatos.blue.fechaAprox ? ' (≈ '+ddmmES(ultimoDatos.blue.fechaAprox)+')' : '';
+  return 'cotización de hace '+ultimoDatos.blue.antiguedadTexto+aprox;
+}
 function buildShareText(){
   const o=parseES(oficial.value), b=parseES(blue.value), t=tc();
-  let texto = 'Cotización EUR/ARS – '+nowES()+'\n';
-  texto += 'Euro oficial (Banco Nación): $ '+(isNaN(o)?'—':formatES(o))+'\n';
-  texto += 'Euro blue (Dolarito): $ '+(isNaN(b)?'—':formatES(b))+'\n';
+  const fechaOficial = textoFechaOficial();
+  const fechaBlue = textoFechaBlue();
+  let texto = 'Euro oficial (Banco Nación): $ '+(isNaN(o)?'—':formatES(o))+(fechaOficial?' — '+fechaOficial:'')+'\n';
+  texto += 'Euro blue (Dolarito): $ '+(isNaN(b)?'—':formatES(b))+(fechaBlue?' — '+fechaBlue:'')+'\n';
   texto += 'Precio medio: $ '+(isNaN(t)?'—':formatES(t))+'\n';
-  texto += '-----\n';
+  texto += '------\n';
+  texto += 'Calculado el '+nowES()+'\n';
   texto += (ars.value||'—')+' ARS = '+(eur.value||'—')+' EUR';
   return texto;
 }
