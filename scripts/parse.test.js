@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('assert');
-const { parseBna, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad } = require('./parse');
+const { parseBna, parseBnaPizarra, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad } = require('./parse');
 
 // ---- Fixture real capturado directamente del DOM de dolarito.ar (6/9/2026):
 // el contenedor .chakra-stack propio de la tarjeta "euro blue", aislado del
@@ -30,6 +30,41 @@ Dolar Australiano	1077.9309	1087.4188
 
 (*) cotización cada 100 unidades.
 `;
+
+// ---- Fixture real capturado de https://www.bna.com.ar/Personas (7/9/2026):
+// trae la "pizarra" del día (Dolar U.S.A, Euro, Real) seguida de "Hora
+// Actualización", y más abajo la tabla de cierre de mercado del último día
+// hábil (el mismo formato que BNA_FIXTURE, de /Cotizador/MonedasHistorico).
+// parseBnaPizarra debe quedarse solo con la primera. ----
+const BNA_PERSONAS_FIXTURE = `
+Cotización de Divisas
+
+7/9/2026 Compra Venta
+Dolar U.S.A 1480,00 1530,00
+Euro 1700,00 1800,00
+Real * 28500,00 30700,00
+Ver histórico
+
+Hora Actualización: 09:53
+
+(*) cotización cada 100 unidades.
+
+Fecha: 4/9/2026
+Monedas	Compra	Venta
+Dolar U.S.A	1499.0000	1508.0000
+Libra Esterlina	2024.6993	2041.3796
+Euro	1739.1398	1753.3516
+Franco Suizos (*)	184986.0654	186347.3780
+
+(*) cotización cada 100 unidades.
+
+El tipo de cambio de cierre de divisa es suministrado al público a fines informativos.
+`;
+
+// ---- Fixture: la misma página, pero sin la pizarra del día (por ejemplo si
+// BNA le cambia el layout), para probar el respaldo automático a la tabla de
+// cierre de mercado. ----
+const BNA_PERSONAS_SIN_PIZARRA_FIXTURE = BNA_FIXTURE;
 
 // ---- Fixture real capturado hoy de dolarito.ar/cotizacion/euro-hoy (texto visible) ----
 const DOLARITO_FIXTURE = `
@@ -276,6 +311,30 @@ assert.strictEqual(bna.fecha, '2026-09-04');
 assert.strictEqual(bna.venta, 1753.3516);
 assert.strictEqual(bna.compra, 1739.1398);
 console.log('OK parseBna ->', bna);
+
+const bnaPizarra = parseBnaPizarra(BNA_PERSONAS_FIXTURE);
+assert.strictEqual(bnaPizarra.fecha, '2026-09-07');
+assert.strictEqual(bnaPizarra.compra, 1700);
+assert.strictEqual(bnaPizarra.venta, 1800);
+assert.strictEqual(bnaPizarra.hora, '09:53');
+console.log('OK parseBnaPizarra ->', bnaPizarra);
+
+// Respaldo: usando parseBna (el método anterior) sobre una página que solo
+// trae la tabla de cierre de mercado, sigue funcionando igual que antes.
+const bnaRespaldo = parseBna(BNA_PERSONAS_SIN_PIZARRA_FIXTURE);
+assert.strictEqual(bnaRespaldo.fecha, '2026-09-04');
+assert.strictEqual(bnaRespaldo.compra, 1739.1398);
+console.log('OK parseBna sigue funcionando como respaldo ->', bnaRespaldo);
+
+// parseBnaPizarra debe rechazar un texto sin "Hora Actualización" (para que
+// el scraper sepa que tiene que caer al respaldo).
+try {
+  parseBnaPizarra(BNA_PERSONAS_SIN_PIZARRA_FIXTURE);
+  throw new Error('debería haber lanzado');
+} catch (e) {
+  assert.ok(/Hora Actualizaci/i.test(e.message));
+  console.log('OK parseBnaPizarra lanza error si no hay "Hora Actualización" (dispara el respaldo)');
+}
 
 const blue = parseDolaritoBlue(DOLARITO_FIXTURE);
 assert.strictEqual(blue.compra, 1802.05);
