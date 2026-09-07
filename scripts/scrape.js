@@ -4,7 +4,10 @@
  * evitar el problema de CORS al leer HTML de sitios que no son una API).
  *
  * Lee:
- *  - https://www.bna.com.ar/Cotizador/MonedasHistorico  -> euro oficial (venta) + fecha
+ *  - https://www.bna.com.ar/Personas                     -> euro oficial (compra), pizarra
+ *                                                            del día ("Hora Actualización"),
+ *                                                            con la tabla de cierre de mercado
+ *                                                            como respaldo si la pizarra no está
  *  - https://www.dolarito.ar/cotizacion/euro-hoy         -> euro blue (compra) + antigüedad
  *
  * Escribe rates.json en la raíz del repo, que la página estática lee con
@@ -18,9 +21,14 @@
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
-const { parseBna, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad } = require('./parse');
+const { parseBna, parseBnaPizarra, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad } = require('./parse');
 
-const BNA_URL = 'https://www.bna.com.ar/Cotizador/MonedasHistorico';
+const BNA_URL = 'https://www.bna.com.ar/Personas';
+// Respaldo: la tabla de cierre de mercado del último día hábil, en una URL
+// aparte (en la página de /Personas esa tabla no está visible en el texto
+// -queda oculta detrás del botón "Ver histórico"-, así que si la pizarra
+// del día falla vamos a buscar el cierre a esta otra página).
+const BNA_HISTORICO_URL = 'https://www.bna.com.ar/Cotizador/MonedasHistorico';
 const DOLARITO_URL = 'https://www.dolarito.ar/cotizacion/euro-hoy';
 const RATES_PATH = path.join(__dirname, '..', 'rates.json');
 const NAV_TIMEOUT_MS = 30000;
@@ -110,11 +118,23 @@ async function main() {
   try {
     const textoBna = await obtenerTextoVisible(browser, BNA_URL);
     try {
-      oficial = parseBna(textoBna);
-    } catch (parseErr) {
-      console.error('--- BNA: texto crudo (diagnóstico, primeros 3000 caracteres) ---');
-      console.error(textoBna.slice(0, 3000));
-      throw parseErr;
+      // Método preferido: la "pizarra" del día (se actualiza durante la
+      // jornada, tiene "Hora Actualización").
+      oficial = parseBnaPizarra(textoBna);
+    } catch (parseErrPizarra) {
+      // Respaldo: si la pizarra no se pudo leer (cambió el layout, etc.),
+      // vamos a buscar el cierre de mercado del último día hábil a la
+      // página histórica aparte (en /Personas esa tabla no está visible en
+      // el texto de la página; queda oculta detrás de "Ver histórico").
+      console.warn('AVISO: no se pudo leer la pizarra del día en BNA (' + parseErrPizarra.message + '); usando el cierre de mercado como respaldo.');
+      try {
+        const textoBnaHistorico = await obtenerTextoVisible(browser, BNA_HISTORICO_URL);
+        oficial = parseBna(textoBnaHistorico);
+      } catch (parseErr) {
+        console.error('--- BNA: texto crudo de la pizarra (diagnóstico, primeros 3000 caracteres) ---');
+        console.error(textoBna.slice(0, 3000));
+        throw parseErr;
+      }
     }
   } catch (err) {
     errores.push(err.message);
@@ -184,6 +204,7 @@ async function main() {
       venta: oficial.venta,
       compra: oficial.compra,
       fecha: oficial.fecha,
+      hora: oficial.hora || null,
       fuente: 'Banco Nación',
       fuenteUrl: BNA_URL,
     },
