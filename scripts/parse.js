@@ -68,6 +68,73 @@ function parseBna(textoCrudo) {
 }
 
 /**
+ * BNA - https://www.bna.com.ar/Personas (tabla "pizarra" del día, con
+ * "Hora Actualización: HH:MM"), fuente PREFERIDA para el euro oficial
+ * (confirmado en vivo el 7/9/2026: la hora de actualización avanza durante
+ * el día, 09:53 -> 15:02, a diferencia de la tabla de cierre de mercado que
+ * solo se actualiza una vez por día hábil).
+ *
+ * Esta página SOLO muestra, en document.body.innerText, la tabla de la
+ * "pizarra" del día (Dolar U.S.A, Euro, Real) seguida de "Hora
+ * Actualización: HH:MM". La tabla de cierre de mercado (la misma de
+ * /Cotizador/MonedasHistorico, con 11 monedas) NO aparece en el texto
+ * visible de esta página -queda oculta detrás del botón "Ver histórico"-,
+ * así que el respaldo para esa tabla se busca en su propia URL aparte (ver
+ * BNA_HISTORICO_URL en scrape.js), no en este mismo texto.
+ *
+ * Nos quedamos con el texto ANTES de "Hora Actualización" (por si en algún
+ * momento la tabla histórica sí llegara a aparecer más abajo) y buscamos
+ * ahí la fecha y la fila de "Euro".
+ *
+ * Formato esperado (texto plano, dentro del bloque de la pizarra):
+ *   7/9/2026 Compra Venta
+ *   Dolar U.S.A 1480,00 1530,00
+ *   Euro 1700,00 1800,00
+ *   Real * 28500,00 30700,00
+ *   Hora Actualización: 09:53
+ * Los valores usan coma decimal (formato es-AR), sin separador de miles
+ * cuando el número entra en 4 cifras (parseNumeroES soporta ambos casos).
+ */
+function parseBnaPizarra(textoCrudo) {
+  const texto = normalizar(textoCrudo);
+
+  const idxHora = texto.search(/Hora\s+Actualizaci[oó]n/i);
+  if (idxHora === -1) {
+    throw new Error('BNA (pizarra): no se encontró la etiqueta "Hora Actualización"');
+  }
+  const bloque = texto.slice(0, idxHora);
+
+  const matchFecha = bloque.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!matchFecha) {
+    throw new Error('BNA (pizarra): no se encontró una fecha antes de "Hora Actualización"');
+  }
+  const [, d, m, y] = matchFecha;
+  const dia = parseInt(d, 10);
+  const mes = parseInt(m, 10);
+  const anio = parseInt(y, 10);
+  const fechaISO = `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+
+  const matchEuro = bloque.match(/\bEuro\s+([\d.,]+)\s+([\d.,]+)/i);
+  if (!matchEuro) {
+    throw new Error('BNA (pizarra): no se encontró la fila de "Euro" con compra/venta');
+  }
+  const compra = parseNumeroES(matchEuro[1]);
+  const venta = parseNumeroES(matchEuro[2]);
+
+  if (!enRango(compra) || !enRango(venta)) {
+    throw new Error(`BNA (pizarra): valores fuera de rango razonable (compra=${compra}, venta=${venta})`);
+  }
+  if (venta < compra) {
+    throw new Error(`BNA (pizarra): venta (${venta}) menor que compra (${compra}), posible error de parseo`);
+  }
+
+  const matchHora = texto.slice(idxHora, idxHora + 60).match(/Hora\s+Actualizaci[oó]n:?\s*(\d{1,2}:\d{2})/i);
+  const hora = matchHora ? matchHora[1] : null;
+
+  return { fecha: fechaISO, compra, venta, hora };
+}
+
+/**
  * Dolarito - https://www.dolarito.ar/cotizacion/euro-hoy
  *
  * Según el ancho de pantalla con el que Playwright renderice la página,
@@ -115,12 +182,6 @@ function parseBna(textoCrudo) {
  * "EURO TARJETA". La forma B/C usa un separador acotado (nada de comodines
  * sin límite) entre la antigüedad y "Spread:" para tolerar el "|" u otro
  * separador sin poder saltar de un bloque a otro.
- *
- * NOTA (6/9/2026): esta función queda como método de RESPALDO. Se descubrió
- * que document.body.innerText desalinea, en el orden lineal del texto, la
- * etiqueta de cada tarjeta con los valores de la tarjeta SIGUIENTE (no la
- * propia) — ver parseDolaritoBlueBloque más abajo, que es el método
- * preferido porque aísla cada tarjeta por su propio contenedor del DOM.
  */
 function parseDolaritoBlue(textoCrudo) {
   const texto = normalizar(textoCrudo);
@@ -231,4 +292,4 @@ function interpretarAntiguedad(antiguedadTexto) {
   return { esDeHoy: true, diasAtras: 0 };
 }
 
-module.exports = { parseBna, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad, parseNumeroES, normalizar };
+module.exports = { parseBna, parseBnaPizarra, parseDolaritoBlue, parseDolaritoBlueBloque, interpretarAntiguedad, parseNumeroES, normalizar };
