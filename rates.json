@@ -3,7 +3,7 @@
     "venta": 1800,
     "compra": 1700,
     "fecha": "2026-09-10",
-    "hora": "15:03",
+    "hora": "17:01",
     "fuente": "Banco Nación",
     "fuenteUrl": "https://www.bna.com.ar/Personas"
   },
@@ -11,13 +11,13 @@
     "compra": 1838.75,
     "venta": 1799.75,
     "esDeHoy": true,
-    "antiguedadTexto": "20 minutos",
+    "antiguedadTexto": "16 minutos",
     "fechaAprox": "2026-09-10",
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-09-10T19:05:14.895Z",
-  "ultimoIntento": "2026-09-10T19:05:14.895Z",
+  "scrapedAt": "2026-09-10T21:45:52.762Z",
+  "ultimoIntento": "2026-09-10T21:45:52.762Z",
   "ultimoIntentoOk": true,
   "ultimoError": null
 }
