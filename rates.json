@@ -8,16 +8,16 @@
     "fuenteUrl": "https://www.bna.com.ar/Personas"
   },
   "blue": {
-    "compra": 1838.75,
-    "venta": 1799.75,
+    "compra": 1832.75,
+    "venta": 1793.75,
     "esDeHoy": true,
     "antiguedadTexto": "minutos",
     "fechaAprox": "2026-09-11",
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-09-11T12:57:27.519Z",
-  "ultimoIntento": "2026-09-11T12:57:27.519Z",
+  "scrapedAt": "2026-09-11T16:58:42.233Z",
+  "ultimoIntento": "2026-09-11T16:58:42.233Z",
   "ultimoIntentoOk": true,
   "ultimoError": null
 }
