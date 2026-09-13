@@ -11,13 +11,13 @@
     "compra": 1832.75,
     "venta": 1793.75,
     "esDeHoy": true,
-    "antiguedadTexto": "22 minutos",
+    "antiguedadTexto": "minutos",
     "fechaAprox": "2026-09-13",
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-09-13T06:36:44.200Z",
-  "ultimoIntento": "2026-09-13T06:36:44.200Z",
+  "scrapedAt": "2026-09-13T12:35:26.554Z",
+  "ultimoIntento": "2026-09-13T12:35:26.554Z",
   "ultimoIntentoOk": true,
   "ultimoError": null
 }
