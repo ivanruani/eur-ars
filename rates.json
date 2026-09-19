@@ -17,7 +17,7 @@
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
   "scrapedAt": "2026-09-18T23:05:51.729Z",
-  "ultimoIntento": "2026-09-18T23:05:51.729Z",
-  "ultimoIntentoOk": true,
-  "ultimoError": null
+  "ultimoIntento": "2026-09-19T01:26:04.765Z",
+  "ultimoIntentoOk": false,
+  "ultimoError": "page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.bna.com.ar/Personas\", waiting until \"networkidle\"\n"
 }
