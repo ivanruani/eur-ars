@@ -1,23 +1,23 @@
 {
   "oficial": {
-    "venta": 1770,
-    "compra": 1670,
-    "fecha": "2026-09-25",
-    "hora": "17:00",
+    "venta": 1785,
+    "compra": 1685,
+    "fecha": "2026-09-28",
+    "hora": "10:42",
     "fuente": "Banco Nación",
     "fuenteUrl": "https://www.bna.com.ar/Personas"
   },
   "blue": {
-    "compra": 1855.75,
-    "venta": 1816.75,
+    "compra": 1867.75,
+    "venta": 1828.75,
     "esDeHoy": true,
-    "antiguedadTexto": "21 minutos",
+    "antiguedadTexto": "minutos",
     "fechaAprox": "2026-09-28",
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-09-28T08:21:17.554Z",
-  "ultimoIntento": "2026-09-28T08:21:17.554Z",
+  "scrapedAt": "2026-09-28T16:55:36.153Z",
+  "ultimoIntento": "2026-09-28T16:55:36.153Z",
   "ultimoIntentoOk": true,
   "ultimoError": null
 }
