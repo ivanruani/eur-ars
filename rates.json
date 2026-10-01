@@ -1,9 +1,9 @@
 {
   "oficial": {
-    "venta": 1770,
-    "compra": 1670,
+    "venta": 1765,
+    "compra": 1665,
     "fecha": "2026-09-30",
-    "hora": "11:12",
+    "hora": "17:00",
     "fuente": "Banco Nación",
     "fuenteUrl": "https://www.bna.com.ar/Personas"
   },
@@ -16,8 +16,8 @@
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-09-30T16:42:34.544Z",
-  "ultimoIntento": "2026-09-30T21:16:47.612Z",
-  "ultimoIntentoOk": false,
-  "ultimoError": "page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.bna.com.ar/Personas\", waiting until \"networkidle\"\n"
+  "scrapedAt": "2026-10-01T00:42:45.492Z",
+  "ultimoIntento": "2026-10-01T00:42:45.492Z",
+  "ultimoIntentoOk": true,
+  "ultimoError": null
 }
