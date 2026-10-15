@@ -2,22 +2,22 @@
   "oficial": {
     "venta": 1750,
     "compra": 1650,
-    "fecha": "2026-10-14",
-    "hora": "17:00",
+    "fecha": "2026-10-15",
+    "hora": "09:55",
     "fuente": "Banco Nación",
     "fuenteUrl": "https://www.bna.com.ar/Personas"
   },
   "blue": {
-    "compra": 1844.75,
-    "venta": 1804.75,
+    "compra": 1838.75,
+    "venta": 1799.75,
     "esDeHoy": true,
-    "antiguedadTexto": "una hora",
+    "antiguedadTexto": "minutos",
     "fechaAprox": "2026-10-15",
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-10-15T05:00:48.352Z",
-  "ultimoIntento": "2026-10-15T10:12:19.843Z",
-  "ultimoIntentoOk": false,
-  "ultimoError": "page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.bna.com.ar/Personas\", waiting until \"networkidle\"\n"
+  "scrapedAt": "2026-10-15T15:14:30.159Z",
+  "ultimoIntento": "2026-10-15T15:14:30.159Z",
+  "ultimoIntentoOk": true,
+  "ultimoError": null
 }
