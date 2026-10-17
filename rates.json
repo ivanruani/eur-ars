@@ -12,12 +12,12 @@
     "venta": 1810.75,
     "esDeHoy": true,
     "antiguedadTexto": "minutos",
-    "fechaAprox": "2026-10-16",
+    "fechaAprox": "2026-10-17",
     "fuente": "Dolarito",
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
-  "scrapedAt": "2026-10-16T22:37:54.057Z",
-  "ultimoIntento": "2026-10-17T01:08:32.947Z",
-  "ultimoIntentoOk": false,
-  "ultimoError": "page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.bna.com.ar/Personas\", waiting until \"networkidle\"\n"
+  "scrapedAt": "2026-10-17T05:57:09.135Z",
+  "ultimoIntento": "2026-10-17T05:57:09.135Z",
+  "ultimoIntentoOk": true,
+  "ultimoError": null
 }
