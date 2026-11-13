@@ -17,7 +17,7 @@
     "fuenteUrl": "https://www.dolarito.ar/cotizacion/euro-hoy"
   },
   "scrapedAt": "2026-10-20T00:32:21.220Z",
-  "ultimoIntento": "2026-11-13T00:56:09.533Z",
+  "ultimoIntento": "2026-11-13T07:40:55.251Z",
   "ultimoIntentoOk": false,
-  "ultimoError": "Dolarito: no se pudo extraer compra/venta del bloque de \"euro blue\": 💶euro blue$1.799,75$1.760,75Hace minutos"
+  "ultimoError": "Dolarito: no se pudo extraer compra/venta del bloque de \"euro blue\": 💶euro blue$1.799,75$1.760,75$39 · 2,21%"
 }
